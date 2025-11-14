@@ -1,0 +1,39 @@
+trigger: none  # Run manually or after CI pipeline
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  azureSubscription: 'AzureFastAPIConnection'
+  resourceGroup: 'fastapiproject-rg'
+  webAppName: 'fastapiproject-webapp'
+  containerImage: 'vecjar/python-aca-app:latest'
+
+stages:
+- stage: Terraform_Provision
+  displayName: 'Provision Infrastructure'
+  jobs:
+  - job: Terraform
+    steps:
+    - task: TerraformInstaller@1
+      inputs:
+        terraformVersion: '1.6.2'
+
+    - script: |
+        cd terraform
+        terraform init
+        terraform apply -auto-approve
+      displayName: 'Terraform Apply'
+
+- stage: Deploy_Container
+  displayName: 'Deploy Container to Azure Web App'
+  dependsOn: Terraform_Provision
+  jobs:
+  - job: Deploy
+    steps:
+    - task: AzureWebAppContainer@2
+      displayName: 'Deploy Docker Container'
+      inputs:
+        azureSubscription: '$(azureSubscription)'
+        appName: '$(webAppName)'
+        containers: '$(containerImage)'
