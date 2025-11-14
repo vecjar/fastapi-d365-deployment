@@ -28,9 +28,11 @@ steps:
     containerRegistry: 'DockerHub'
     tags: 'latest'
 
-- task: AzureWebAppContainer@2
-  displayName: 'Deploy to Azure Web App'
+- task: AzureWebApp@1
+  displayName: 'Deploy Docker Container'
   inputs:
     azureSubscription: 'YourAzureServiceConnection'
-    appName: '$(AZURE_WEBAPP_NAME)'
-    containers: '$(imageName)'
+    appName: '$(webAppName)'
+    package: ''
+    appSettings: '-DOCKER_CUSTOM_IMAGE_NAME $(containerImage)'
+
