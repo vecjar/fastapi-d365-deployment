@@ -44,7 +44,7 @@ stages:
 resources:
   pipelines:
     - pipeline: CI_Pipeline      # Reference name for this resource
-      source: 'FastAPI-CI'       # Your CI pipeline name in Azure DevOps
+      source: 'Fast API Project (8)       # Your CI pipeline name in Azure DevOps
       trigger:
         branches:
           include:
