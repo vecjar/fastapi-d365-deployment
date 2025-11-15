@@ -47,7 +47,7 @@ stages:
 resources:
   pipelines:
     - pipeline: CI_Pipeline           # internal reference
-      source: 'Fast API Project (8)' # EXACT name of your CI pipeline
+      source: 'Fast API Project' # EXACT name of your CI pipeline
       trigger:
         branches:
           include:
