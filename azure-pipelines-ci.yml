@@ -31,7 +31,7 @@ steps:
 - task: AzureWebApp@1
   displayName: 'Deploy Docker Container'
   inputs:
-    azureSubscription: 'YourAzureServiceConnection'
+    azureSubscription: 'AzureFastAPIConnection'
     appName: '$(webAppName)'
     package: ''
     appSettings: '-DOCKER_CUSTOM_IMAGE_NAME $(containerImage)'
