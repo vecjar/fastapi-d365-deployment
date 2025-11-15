@@ -10,23 +10,30 @@ variables:
   containerImage: 'vecjar/python-aca-app:latest' # Docker Hub image
 
 steps:
-# 1️⃣ Use Python 3.11
+
+# -------------------------------------------------------------------
+# Uses Python 3.11
+# -------------------------------------------------------------------
 - task: UsePythonVersion@0
   inputs:
     versionSpec: '3.11'
 
-# 2️⃣ Install Python dependencies
+# -------------------------------------------------------------------
+# Installs Python dependencies
+# -------------------------------------------------------------------
 - script: |
     python -m pip install --upgrade pip
     pip install -r app/requirements.txt
   displayName: 'Install Python dependencies'
-
-# 3️⃣ Build and Push Docker Image to Docker Hub
+  
+# -------------------------------------------------------------------
+# Builds and Pushes Docker Image to Docker Hub
+# -------------------------------------------------------------------
 - task: Docker@2
   displayName: 'Build and Push Docker Image'
   inputs:
     command: 'buildAndPush'
     repository: 'vecjar/python-aca-app'
     dockerfile: 'app/Dockerfile'
-    containerRegistry: 'DockerHub'   # Make sure this matches your service connection name
+    containerRegistry: 'DockerHub'   # Service connection name in devops
     tags: 'latest'
