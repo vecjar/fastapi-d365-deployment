@@ -1,4 +1,4 @@
-trigger: none  # Run manually or after CI pipeline
+trigger: none  # Manual run or triggered from CI
 
 pool:
   vmImage: 'ubuntu-latest'
@@ -7,33 +7,46 @@ variables:
   azureSubscription: 'AzureFastAPIConnection'
   resourceGroup: 'fastapiproject-rg'
   webAppName: 'fastapiproject-webapp'
+  # This variable will be overridden by CI if needed
   containerImage: 'vecjar/python-aca-app:latest'
 
 stages:
+
+# Optional: Provision infrastructure with Terraform
 - stage: Terraform_Provision
   displayName: 'Provision Infrastructure'
   jobs:
-  - job: Terraform
-    steps:
-    - task: TerraformInstaller@1
-      inputs:
-        terraformVersion: '1.6.2'
+    - job: Terraform
+      steps:
+        - task: TerraformInstaller@1
+          inputs:
+            terraformVersion: '1.6.2'
+        - script: |
+            cd terraform
+            terraform init
+            terraform apply -auto-approve
+          displayName: 'Terraform Apply'
 
-    - script: |
-        cd terraform
-        terraform init
-        terraform apply -auto-approve
-      displayName: 'Terraform Apply'
-
+# Deploy Docker container
 - stage: Deploy_Container
-  displayName: 'Deploy Container to Azure Web App'
+  displayName: 'Deploy Docker Container'
   dependsOn: Terraform_Provision
   jobs:
-  - job: Deploy
-    steps:
-    - task: AzureWebAppContainer@2
-      displayName: 'Deploy Docker Container'
-      inputs:
-        azureSubscription: '$(azureSubscription)'
-        appName: '$(webAppName)'
-        containers: '$(containerImage)'
+    - job: Deploy
+      steps:
+        - task: AzureWebAppContainer@2
+          displayName: 'Deploy Docker Container'
+          inputs:
+            azureSubscription: '$(azureSubscription)'
+            appName: '$(webAppName)'
+            containers: '$(containerImage)'
+
+# Pipeline trigger to run this CD automatically after CI
+resources:
+  pipelines:
+    - pipeline: CI_Pipeline  # name for reference in this YAML
+      source: 'FastAPI-CI'   # the CI pipeline name in Azure DevOps
+      trigger:
+        branches:
+          include:
+            - main  # run CD only when CI on main branch succeeds
