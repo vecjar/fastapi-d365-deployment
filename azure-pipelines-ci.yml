@@ -7,7 +7,9 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  imageName: 'vecjar/python-aca-app:latest'
+  azureSubscription: 'AzureFastAPIConnection'
+  webAppName: 'fastapiproject-webapp'
+  containerImage: 'vecjar/python-aca-app:latest'
 
 steps:
 - task: UsePythonVersion@0
@@ -28,11 +30,9 @@ steps:
     containerRegistry: 'DockerHub'
     tags: 'latest'
 
-- task: AzureWebApp@1
+- task: AzureWebAppContainer@2
   displayName: 'Deploy Docker Container'
   inputs:
-    azureSubscription: 'AzureFastAPIConnection'
+    azureSubscription: '$(azureSubscription)'
     appName: '$(webAppName)'
-    package: ''
-    appSettings: '-DOCKER_CUSTOM_IMAGE_NAME $(containerImage)'
-
+    containers: '$(containerImage)'
