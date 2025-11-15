@@ -18,10 +18,23 @@ stages:
     - job: Terraform
       displayName: 'Terraform Job'
       steps:
+        # Install Terraform
         - task: TerraformInstaller@1
           displayName: 'Install Terraform'
           inputs:
             terraformVersion: '1.6.2'
+
+        # Login to Azure using Service Connection
+        - task: AzureCLI@2
+          displayName: 'Login to Azure'
+          inputs:
+            azureSubscription: '$(azureSubscription)'
+            scriptType: 'bash'
+            scriptLocation: 'inlineScript'
+            inlineScript: |
+              echo "Logged in via Azure CLI"
+
+        # Terraform init and apply
         - script: |
             cd terraform
             terraform init
@@ -46,8 +59,8 @@ stages:
 # Trigger this CD pipeline automatically after CI succeeds
 resources:
   pipelines:
-    - pipeline: CI_Pipeline           # internal reference
-      source: 'Fast API Project' # EXACT name of your CI pipeline
+    - pipeline: CI_Pipeline           # internal reference for variables if needed
+      source: 'Fast API Project'     # EXACT name of your CI pipeline
       trigger:
         branches:
           include:
