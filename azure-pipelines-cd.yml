@@ -16,8 +16,10 @@ stages:
   displayName: 'Provision Infrastructure'
   jobs:
     - job: Terraform
+      displayName: 'Terraform Job'
       steps:
         - task: TerraformInstaller@1
+          displayName: 'Install Terraform'
           inputs:
             terraformVersion: '1.6.2'
         - script: |
@@ -32,8 +34,9 @@ stages:
   dependsOn: Terraform_Provision
   jobs:
     - job: Deploy
+      displayName: 'Deploy Job'
       steps:
-        - task: AzureWebAppContainer@2
+        - task: AzureWebAppContainer@1
           displayName: 'Deploy Docker Container'
           inputs:
             azureSubscription: '$(azureSubscription)'
@@ -43,8 +46,8 @@ stages:
 # Trigger this CD pipeline automatically after CI succeeds
 resources:
   pipelines:
-    - pipeline: CI_Pipeline       # internal reference
-      source: 'Fast API Project (8)'   # EXACT name of your CI pipeline
+    - pipeline: CI_Pipeline           # internal reference
+      source: 'Fast API Project (8)' # EXACT name of your CI pipeline
       trigger:
         branches:
           include:
