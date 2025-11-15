@@ -11,37 +11,46 @@ variables:
 
 stages:
 
+# -------------------------------------------------------------------
 # Stage 1: Terraform Provisioning
+# -------------------------------------------------------------------
 - stage: Terraform_Provision
   displayName: 'Provision Infrastructure'
   jobs:
     - job: Terraform
       displayName: 'Terraform Job'
       steps:
-        # Install Terraform
+
+        # 1 - Login to Azure using Service Connection
+        - task: AzureCLI@2
+          displayName: 'Azure CLI Login'
+          inputs:
+            azureSubscription: '$(azureSubscription)'
+            scriptType: bash
+            scriptLocation: inlineScript
+            inlineScript: |
+              echo "Azure CLI logged in:"
+              az account show
+
+        # 2 - Install Terraform
         - task: TerraformInstaller@1
           displayName: 'Install Terraform'
           inputs:
             terraformVersion: '1.6.2'
 
-        # Login to Azure using Service Connection
-        - task: AzureCLI@2
-          displayName: 'Login to Azure'
-          inputs:
-            azureSubscription: '$(azureSubscription)'
-            scriptType: 'bash'
-            scriptLocation: 'inlineScript'
-            inlineScript: |
-              echo "Logged in via Azure CLI"
-
-        # Terraform init and apply
+        # 3 - Run Terraform (with correct ENV vars!)
         - script: |
             cd terraform
             terraform init
             terraform apply -auto-approve
           displayName: 'Terraform Apply'
+          env:
+            ARM_SUBSCRIPTION_ID: $(ARM_SUBSCRIPTION_ID)
+            ARM_TENANT_ID:       $(ARM_TENANT_ID)
 
+# -------------------------------------------------------------------
 # Stage 2: Deploy Docker Container
+# -------------------------------------------------------------------
 - stage: Deploy_Container
   displayName: 'Deploy Docker Container'
   dependsOn: Terraform_Provision
@@ -56,11 +65,13 @@ stages:
             appName: '$(webAppName)'
             containers: '$(containerImage)'
 
+# -------------------------------------------------------------------
 # Trigger this CD pipeline automatically after CI succeeds
+# -------------------------------------------------------------------
 resources:
   pipelines:
-    - pipeline: CI_Pipeline           # internal reference for variables if needed
-      source: 'Fast API Project'     # EXACT name of your CI pipeline
+    - pipeline: CI_Pipeline           # internal reference name
+      source: 'Fast API Project'     # EXACT NAME of your CI pipeline
       trigger:
         branches:
           include:
