@@ -21,32 +21,24 @@ stages:
       displayName: 'Terraform Job'
       steps:
 
-        # 1 - Login to Azure using Service Connection
-        - task: AzureCLI@2
-          displayName: 'Azure CLI Login'
-          inputs:
-            azureSubscription: '$(azureSubscription)'
-            scriptType: bash
-            scriptLocation: inlineScript
-            inlineScript: |
-              echo "Azure CLI logged in:"
-              az account show
-
-        # 2 - Install Terraform
+        # Install Terraform
         - task: TerraformInstaller@1
           displayName: 'Install Terraform'
           inputs:
             terraformVersion: '1.6.2'
 
-        # 3 - Run Terraform (with correct ENV vars!)
-        - script: |
-            cd terraform
-            terraform init
-            terraform apply -auto-approve
-          displayName: 'Terraform Apply'
-          env:
-            ARM_SUBSCRIPTION_ID: $(ARM_SUBSCRIPTION_ID)
-            ARM_TENANT_ID:       $(ARM_TENANT_ID)
+        # Run Terraform inside AzureCLI (login + apply in one step)
+        - task: AzureCLI@2
+          displayName: 'Terraform Init & Apply'
+          inputs:
+            azureSubscription: '$(azureSubscription)'
+            scriptType: bash
+            scriptLocation: inlineScript
+            inlineScript: |
+              echo "Running Terraform..."
+              cd terraform
+              terraform init
+              terraform apply -auto-approve
 
 # -------------------------------------------------------------------
 # Stage 2: Deploy Docker Container
