@@ -1,4 +1,4 @@
-trigger: none  # CD will only be triggered by CI, not by branch pushes
+trigger: none  # CD triggered by CI only
 
 pool:
   vmImage: 'ubuntu-latest'
@@ -7,7 +7,7 @@ variables:
   azureSubscription: 'AzureFastAPIConnection'
   resourceGroup: 'fastapiproject-rg'
   webAppName: 'fastapiproject-webapp'
-  containerImage: 'vecjar/python-aca-app:latest'  # Default, will be overridden by CI if needed
+  containerImage: 'vecjar/python-aca-app:latest'  # Default, overridden by CI
 
 stages:
 
@@ -58,12 +58,12 @@ stages:
             containers: '$(containerImage)'
 
 # -------------------------------------------------------------------
-# Trigger this CD pipeline automatically after CI succeeds
+# Trigger CD automatically after CI succeeds
 # -------------------------------------------------------------------
 resources:
   pipelines:
-    - pipeline: CI_Pipeline           # internal reference name
-      source: 'Fast API Project'     # EXACT NAME of your CI pipeline
+    - pipeline: CI_Pipeline           # reference name
+      source: 'Fast API Project'     # EXACT name of your CI pipeline
       trigger:
         branches:
           include:
