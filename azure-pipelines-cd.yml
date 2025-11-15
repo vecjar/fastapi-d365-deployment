@@ -1,4 +1,4 @@
-trigger: none  # Manual run or triggered from CI
+trigger: none  # CD will only be triggered by CI, not by branch pushes
 
 pool:
   vmImage: 'ubuntu-latest'
@@ -7,12 +7,11 @@ variables:
   azureSubscription: 'AzureFastAPIConnection'
   resourceGroup: 'fastapiproject-rg'
   webAppName: 'fastapiproject-webapp'
-  # This variable will be overridden by CI if needed
-  containerImage: 'vecjar/python-aca-app:latest'
+  containerImage: 'vecjar/python-aca-app:latest'  # Default, will be overridden by CI if needed
 
 stages:
 
-# Optional: Provision infrastructure with Terraform
+# Stage 1: Terraform Provisioning
 - stage: Terraform_Provision
   displayName: 'Provision Infrastructure'
   jobs:
@@ -27,7 +26,7 @@ stages:
             terraform apply -auto-approve
           displayName: 'Terraform Apply'
 
-# Deploy Docker container
+# Stage 2: Deploy Docker Container
 - stage: Deploy_Container
   displayName: 'Deploy Docker Container'
   dependsOn: Terraform_Provision
@@ -41,12 +40,12 @@ stages:
             appName: '$(webAppName)'
             containers: '$(containerImage)'
 
-# Pipeline trigger to run this CD automatically after CI
+# Trigger this CD pipeline automatically after CI succeeds
 resources:
   pipelines:
-    - pipeline: CI_Pipeline  # name for reference in this YAML
-      source: 'FastAPI-CI'   # the CI pipeline name in Azure DevOps
+    - pipeline: CI_Pipeline      # Reference name for this resource
+      source: 'FastAPI-CI'       # Your CI pipeline name in Azure DevOps
       trigger:
         branches:
           include:
-            - main  # run CD only when CI on main branch succeeds
+            - main               # Only trigger CD if CI ran on main branch
