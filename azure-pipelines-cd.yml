@@ -1,4 +1,17 @@
-trigger: none  # CD is triggered by CI
+trigger: none    # CD is triggered by CI completion, not by code pushes
+
+# -------------------------------------------------------------------
+# CI → CD trigger
+# -------------------------------------------------------------------
+resources:
+  pipelines:
+    - pipeline: CI_Pipeline
+      source: 'Fast API Project'     # Name of CI pipeline
+      trigger:
+        branches:
+          include:
+            - main                   # Trigger CD when CI succeeds on main
+
 
 pool:
   vmImage: 'ubuntu-latest'
@@ -27,7 +40,7 @@ stages:
           inputs:
             terraformVersion: '1.6.2'
 
-        # Run Terraform inside AzureCLI (login + apply in one step)
+        # Run Terraform using AzureCLI (login + apply in one step)
         - task: AzureCLI@2
           displayName: 'Terraform Init & Apply'
           inputs:
@@ -56,15 +69,3 @@ stages:
             azureSubscription: '$(azureSubscription)'
             appName: '$(webAppName)'
             containers: '$(containerImage)'
-
-# -------------------------------------------------------------------
-# Trigger CD automatically after CI succeeds
-# -------------------------------------------------------------------
-resources:
-  pipelines:
-    - pipeline: CI_Pipeline          
-      source: 'Fast API Project'     # Name of CI pipeline
-      trigger:
-        branches:
-          include:
-            - main
