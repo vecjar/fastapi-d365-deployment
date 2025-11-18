@@ -1,82 +1,74 @@
-from fastapi import FastAPI
-from fastapi.responses import Response
+from fastapi import FastAPI, Request
+from fastapi.responses import RedirectResponse, HTMLResponse
+from msal import ConfidentialClientApplication
 import requests
-from msal import PublicClientApplication
-import json
+import os
 
 app = FastAPI()
 
-# --- Replace these with your values ---
-TENANT_ID = "da157993-5112-44a5-97ab-b0674b677758"
-CLIENT_ID = "1ead5cee-6926-41b3-8364-b9d671727a12"
-D365_URL = "https://org932fcf4e.crm6.dynamics.com/api/data/v9.2/accounts?$top=5"
+# Azure AD App Registration values
+CLIENT_ID = "1ead5cee-6926-41b3-8364-b9d671727a12"  # Your App Registration client ID
+CLIENT_SECRET = "fjZ8Q~qENY5qaKgEu3NhQYHKjcNmEPUWU7lmCcBQ"  # <- set this as an environment variable in Azure Web App
+TENANT_ID = "da157993-5112-44a5-97ab-b0674b677758"  # Your tenant ID
+REDIRECT_URI = "https://fastapiproject-webapp.azurewebsites.net/getAToken"  # Must match redirect URI in Azure portal
+SCOPE = ["https://org932fcf4e.crm6.dynamics.com/user_impersonation"]
 
-SCOPE = [f"https://org932fcf4e.crm6.dynamics.com/.default"]
-
-msal_app = PublicClientApplication(
+# MSAL ConfidentialClientApplication for web app login
+msal_app = ConfidentialClientApplication(
     client_id=CLIENT_ID,
+    client_credential=CLIENT_SECRET,
     authority=f"https://login.microsoftonline.com/{TENANT_ID}"
 )
 
-def get_access_token():
-    accounts = msal_app.get_accounts()
-    if accounts:
-        result = msal_app.acquire_token_silent(SCOPE, account=accounts[0])
-        if result and "access_token" in result:
-            return result["access_token"]
-
-    result = msal_app.acquire_token_interactive(scopes=SCOPE)
-    if "access_token" not in result:
-        raise ValueError(f"Could not obtain access token: {result}")
-    return result['access_token']
+# In-memory token cache (for demo/testing only)
+token_cache = {}
 
 @app.get("/")
-def read_accounts():
-    try:
-        token = get_access_token()
-    except Exception as e:
-        return Response(
-            content=json.dumps({"error": "Failed to get access token", "details": str(e)}, indent=4),
-            media_type="application/json",
-            status_code=500
-        )
+def login():
+    """Redirect user to Microsoft login page"""
+    auth_url = msal_app.get_authorization_request_url(
+        SCOPE,
+        redirect_uri=REDIRECT_URI
+    )
+    return RedirectResponse(auth_url)
 
+@app.get("/getAToken")
+def receive_token(request: Request):
+    """Receive auth code and exchange for access token"""
+    code = request.query_params.get("code")
+    if not code:
+        return HTMLResponse("<h2>Error: no auth code returned.</h2>")
+
+    result = msal_app.acquire_token_by_authorization_code(
+        code,
+        scopes=SCOPE,
+        redirect_uri=REDIRECT_URI
+    )
+
+    if "access_token" not in result:
+        return HTMLResponse(f"<h2>Failed to get token</h2><pre>{result}</pre>")
+
+    access_token = result["access_token"]
+    token_cache["access_token"] = access_token  # store for demo
+
+    # Fetch top 5 accounts from Dataverse
+    D365_URL = "https://org932fcf4e.crm6.dynamics.com/api/data/v9.2/accounts?$top=5"
     headers = {
-        "Authorization": f"Bearer {token}",
+        "Authorization": f"Bearer {access_token}",
         "Accept": "application/json"
     }
-
     response = requests.get(D365_URL, headers=headers)
 
     if response.status_code == 200:
-        data = response.json()
-        accounts = [
-            {
-                "name": a.get("name", "N/A"),
-                "main_phone": a.get("telephone1", "N/A"),
-                "city": a.get("address1_city", "N/A")
-            }
-            for a in data.get("value", [])
-        ]
-        # Convert to pretty JSON string
-        return Response(
-            content=json.dumps({"accounts": accounts}, indent=4),
-            media_type="application/json"
-        )
+        accounts = response.json().get("value", [])
+        html = "<h2>Top 5 Accounts</h2><ul>"
+        for a in accounts:
+            html += f"<li>{a.get('name', 'N/A')} - {a.get('telephone1', 'N/A')} - {a.get('address1_city', 'N/A')}</li>"
+        html += "</ul>"
+        return HTMLResponse(html)
     else:
-        return Response(
-            content=json.dumps({
-                "error": "Failed to fetch data",
-                "status_code": response.status_code,
-                "details": response.text
-            }, indent=4),
-            media_type="application/json",
-            status_code=response.status_code
-        )
+        return HTMLResponse(f"<h2>Failed to fetch data</h2><pre>{response.text}</pre>")
 
 @app.get("/health")
 def health_check():
-    return Response(
-        content=json.dumps({"status": "ok"}, indent=4),
-        media_type="application/json"
-    )
+    return {"status": "ok"}
