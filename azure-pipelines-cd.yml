@@ -6,7 +6,7 @@ trigger: none    # CD is triggered by CI completion, not by code pushes
 resources:
   pipelines:
     - pipeline: CI_Pipeline
-      source: 'Fast API Project'     # Name of CI pipeline
+      source: 'Fast API Project' 
       trigger:
         branches:
           include:
