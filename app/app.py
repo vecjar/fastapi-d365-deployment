@@ -7,10 +7,10 @@ import os
 app = FastAPI()
 
 # Azure AD App Registration values
-CLIENT_ID = "1ead5cee-6926-41b3-8364-b9d671727a12"
-CLIENT_SECRET = "fjZ8Q~qENY5qaKgEu3NhQYHKjcNmEPUWU7lmCcBQ"
-TENANT_ID = "da157993-5112-44a5-97ab-b0674b677758" 
-REDIRECT_URI = "https://fastapiproject-webapp.azurewebsites.net/getAToken" 
+CLIENT_ID = os.environ.get("CLIENT_ID")
+CLIENT_SECRET = os.environ.get("CLIENT_SECRET")
+TENANT_ID = os.environ.get("TENANT_ID")
+REDIRECT_URI = os.environ.get("REDIRECT_URI")
 SCOPE = ["https://org932fcf4e.crm6.dynamics.com/user_impersonation"]
 
 # MSAL ConfidentialClientApplication for web app login
